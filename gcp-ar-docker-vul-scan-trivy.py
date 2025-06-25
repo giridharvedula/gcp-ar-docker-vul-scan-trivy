@@ -30,7 +30,7 @@ def list_repositories(project_id, region):
         return []
     return json.loads(output)
 
-
+# list all the available docker images with itirate from each repository
 def list_images_in_repo(project_id, region, repo_name):
     cmd = f"gcloud artifacts docker images list {region}-docker.pkg.dev/{project_id}/{repo_name} --project={project_id} --format=json"
     output = run_cmd(cmd)
@@ -38,6 +38,7 @@ def list_images_in_repo(project_id, region, repo_name):
         return []
     return json.loads(output)
 
+# pull each image into local 
 def pull_image(image_reference):
     print(f"📥 Pulling image: {image_reference}")
     pull_result = run_cmd(f"docker pull {image_reference}")
@@ -46,6 +47,7 @@ def pull_image(image_reference):
         return None
     return image_reference
 
+# scan the each latest image in local with trivy container scaner
 def scan_image_full_details(image_url):
     print(f" Scanning image with Trivy: {image_url}")
     output = run_cmd(f"trivy image --quiet --format json {image_url}")
@@ -58,6 +60,7 @@ def scan_image_full_details(image_url):
         print(" Failed to parse Trivy JSON.")
         return []
 
+# export the scaned Vulnerabilities to a csv file 
     detailed_rows = []
     for result in data.get("Results", []):
         for vuln in result.get("Vulnerabilities", []):
@@ -72,10 +75,12 @@ def scan_image_full_details(image_url):
             })
     return detailed_rows
 
+# execute the main funtion to run the above sub-process.
 def main():
     project_id = os.getenv("PROJECT_ID")
     region = os.getenv("REGION")
 
+# setting up the Project ID and Region
     if not project_id or not region:
         print(" Please set both PROJECT_ID and REGION environment variables.")
         return
@@ -83,25 +88,30 @@ def main():
     timestamp = datetime.now().strftime("%Y%m%d")
     csv_file = f"gcp_{project_id}_audit_{timestamp}.csv"
 
+# csv file headers
     headers = [
         "Project ID", "Repo Name", "Image Name", "Image Reference",
         "CVE ID", "Pkg Name", "Installed Version", "Fixed Version", "Severity", "Title", "Description"
     ]
     rows = []
 
+# auth docker gar
     auth_docker()
 
-    print(f"\n🔍 Project: {project_id}")
+    print(f"\n Project: {project_id}")
 
+# check GAR
     if not check_artifact_api(project_id):
         print(f" Skipping {project_id}: artifactregistry.googleapis.com not enabled.")
         return
 
+# list repositories
     repos = list_repositories(project_id, region)
     if not repos:
         print(f" No repositories found in region: {region}")
         return
 
+# itirate the repos to get latest image
     for repo in repos:
         repo_name = repo["name"].split("/")[-1]
         images = list_images_in_repo(project_id, region, repo_name)
@@ -109,6 +119,7 @@ def main():
             print(f" No images found in repo: {repo_name}")
             continue
 
+# availabel images
         seen_images = set()
         for img in images:
             image_path = img.get("package")
@@ -131,7 +142,7 @@ def main():
                     "Image Reference": image_reference,
                     **vuln
                 })
-
+# save to csv file
     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=headers)
         writer.writeheader()
@@ -139,5 +150,6 @@ def main():
 
     print(f"\n Report exported to: {csv_file} with {len(rows)} CVE(s)")
 
+# run the main function
 if __name__ == "__main__":
     main()
