@@ -80,4 +80,53 @@ def main():
     ]
     rows = []
 
-    
+    auth_docker()
+    print(f"\n Project: {project_id}")
+    if not check_artifact_api(project_id):
+      print(f" Skipping {project_id}: artifactregistry.googleapis.com not enabled.")
+      return
+
+    repos = list_repositories(project_id, region)
+    if not repos:
+      print(f" No repositories found in region: {region}")
+      return
+
+    for repo in repos:
+      repo_name = repo["name"].split("/")[-1]
+      images = list_images_in_repo(project_id, region, repo_name)
+      if not images:
+        print(f" No images found in repo: {repo_name}")
+        continue
+
+      seen_images = set()
+      for img in images:
+        image_path = img.get("package")
+        if not image_path:
+          continue
+
+        image_name = image_path.split("/")[-1]
+        if image_name in seen_images:
+          continue  # Skip duplicate image name entries
+        seen_images.add(image_name)
+        image_reference = f"{region}-docker.pkg.dev/{project_id}/{repo_name}/{image_name}:latest"
+        pulled_ref = pull_image(image_reference)
+        if not pulled_ref:
+          continue
+        vuln_details = scan_image_full_details(pulled_ref)
+        for vuln in vuln_details:
+          rows.append({
+            "Project ID": project_id,
+            "Repo Name": repo_name,
+            "Image Name": image_name,
+            "Image Reference": image_reference,
+            **vuln
+          })
+    with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+      writer = csv.DictWriter(f, fieldnames=headers)
+      writer.writeheader()
+      writer.writerows(rows)
+
+    print(f"\n Report exported to: {csv_file} with {len(rows)} CVE(s)")
+
+if __name__ == "__main__":
+  main()
