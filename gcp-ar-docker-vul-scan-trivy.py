@@ -40,3 +40,15 @@ def pull_image(image_reference):
     return None
   return image_reference
 
+def scan_image_full_details(image_url):
+  print(f" Scanning image with Trivy: {image_url}")
+  output = run_cmd(f"trivy image --quiet --format json {image_url}")
+  if not output:
+    print(" Trivy returned no output.")
+    return []
+  try:
+    data = json.loads(output)
+  except json.JSONDecodeError:
+    print(" Failed to parse Trivy JSON.")
+    return []
+
