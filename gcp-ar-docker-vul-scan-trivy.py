@@ -25,3 +25,10 @@ def list_repositories(project_id, region):
     return []
   return json.loads(output)
 
+def list_images_in_repo(project_id, region, repo_name):
+  cmd = f"gcloud artifacts docker images list {region}-docker.pkg.dev/{project_id}/{repo_name} --project={project_id} --format=json"
+  output = run_cmd(cmd)
+  if not output:
+    return []
+  return json.loads(output)
+
