@@ -12,3 +12,5 @@ def run_cmd(cmd):
     print(f"[ERROR] {cmd}\n{e.stderr.strip()}")
     return None
 
+def check_artifact_api(project_id):
+  return bool(run_cmd(f"gcloud services list --enabled --project={project_id} --filter=artifactregistry.googleapis.com --format='value(config.name)'"))
