@@ -14,3 +14,14 @@ def run_cmd(cmd):
 
 def check_artifact_api(project_id):
   return bool(run_cmd(f"gcloud services list --enabled --project={project_id} --filter=artifactregistry.googleapis.com --format='value(config.name)'"))
+
+def auth_docker():
+  run_cmd("gcloud auth configure-docker --quiet")
+
+def list_repositories(project_id, region):
+  cmd = f"gcloud artifacts repositories list --project={project_id} --location={region} --format=json"
+  output = run_cmd(cmd)
+  if not output:
+    return []
+  return json.loads(output)
+
