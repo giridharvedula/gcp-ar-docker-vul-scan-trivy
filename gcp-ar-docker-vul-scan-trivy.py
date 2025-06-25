@@ -52,3 +52,32 @@ def scan_image_full_details(image_url):
     print(" Failed to parse Trivy JSON.")
     return []
 
+  detailed_rows = []
+  for result in data.get("Results", []):
+    for vuln in result.get("Vulnerabilities", []):
+      detailed_rows.append({
+        "CVE ID": vuln.get("VulnerabilityID", ""),
+        "Pkg Name": vuln.get("PkgName", ""),
+        "Installed Version": vuln.get("InstalledVersion", ""),
+        "Fixed Version": vuln.get("FixedVersion", ""),
+        "Severity": vuln.get("Severity", ""),
+        "Title": vuln.get("Title", ""),
+        "Description": vuln.get("Description", "")[:200].replace("\n", " ").replace(",", ";")
+      })
+  return detailed_rows
+
+def main():
+  project_id = os.getenv("PROJECT_ID")
+  region = os.getenv("REGION")
+  if not project_id or not region:
+    print(" Please set both PROJECT_ID and REGION environment variables.")
+    return
+  timestamp = datetime.now().strftime("%Y%m%d")
+  csv_file = f"gcp_{project_id}_audit_{timestamp}.csv"
+  headers = [
+      "Project ID", "Repo Name", "Image Name", "Image Reference",
+      "CVE ID", "Pkg Name", "Installed Version", "Fixed Version", "Severity", "Title", "Description"
+    ]
+    rows = []
+
+    
