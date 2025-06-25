@@ -1,4 +1,4 @@
-import os
+def pull_image(image_reference):import os
 import subprocess
 import json
 import csv
@@ -31,4 +31,12 @@ def list_images_in_repo(project_id, region, repo_name):
   if not output:
     return []
   return json.loads(output)
+
+def pull_image(image_reference):
+  print(f"Pulling image: {image_reference}")
+  pull_result = run_cmd(f"docker pull {image_reference}")
+  if not pull_result:
+    print(f"Failed to pull image: {image_reference}")
+    return None
+  return image_reference
 
